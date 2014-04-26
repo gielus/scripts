@@ -2,17 +2,6 @@
 
 import sys,subprocess,os,getpass,socket
 
-def choice(text):
-	yes = set(['yes','y', 'ye'])
-        no = set(['no','n',''])
-	choice = raw_input(text).lower()
-        if choice in yes:
-                return True
-        elif choice in no:
-                return False
-        else:
-                sys.stdout.write("Please respond with 'yes' or 'no'")
-
 if len(sys.argv) != 7:
 	print " | Usage: {0} type bits short long rusername rport".format(sys.argv[0])
 	sys.exit()
