@@ -1,0 +1,35 @@
+#!/usr/bin/env python
+
+import sys,subprocess,os,getpass,socket
+
+if len(sys.argv) != 7:
+	print " | Usage: {0} type bits passphrase short long rusername rport".format(sys.argv[0])
+	sys.exit()
+
+type 		= sys.argv[1]
+bits 		= sys.argv[2]
+passphrase	= sys.argv[3]
+
+short		= sys.argv[4]
+long		= sys.argv[5]
+rusername	= sys.argv[6]
+rport		= sys.argv[7]
+
+whoami		= getpass.getuser()
+lhost		= socket.gethostname()
+systemid	= whoami+"@"+lhost
+home		= os.environ["HOME"]
+
+if not os.path.isdir(home+"/.ssh"):
+	os.mkdir(home+"/.ssh")
+
+if not os.path.isfile(home+"/.ssh/"+str(long)):
+	subprocess.call(["/usr/bin/ssh-keygen","-t",type,"-b",bits,"-N",passphrase,"-C",systemid,"-f",home+"/.ssh/"+str(long)])
+	identfile = home+"/.ssh/"+long
+	subprocess.call(["/usr/bin/ssh-copy-id","-i",identfile,"-p",rport,rusername+"@"+long])
+
+
+fh = open(home+"/.ssh/config","a")
+fh.write("Host {0}\n\tHostName\t{1}\n\tPort\t{2}\n\tUser\t{3}\n\tIdentityFile\t{4}\n\n".format(short,long,rport,rusername,identfile))
+fh.close
+
