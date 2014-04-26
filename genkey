@@ -2,34 +2,62 @@
 
 import sys,subprocess,os,getpass,socket
 
+def choice(text):
+	yes = set(['yes','y', 'ye'])
+        no = set(['no','n',''])
+	choice = raw_input(text).lower()
+        if choice in yes:
+                return True
+        elif choice in no:
+                return False
+        else:
+                sys.stdout.write("Please respond with 'yes' or 'no'")
+
 if len(sys.argv) != 7:
-	print " | Usage: {0} type bits passphrase short long rusername rport".format(sys.argv[0])
+	print " | Usage: {0} type bits short long rusername rport".format(sys.argv[0])
 	sys.exit()
 
 type 		= sys.argv[1]
 bits 		= sys.argv[2]
-passphrase	= sys.argv[3]
+passphrase	= "toshort"
 
-short		= sys.argv[4]
-long		= sys.argv[5]
-rusername	= sys.argv[6]
-rport		= sys.argv[7]
+short		= sys.argv[3]
+long		= sys.argv[4]
+rusername	= sys.argv[5]
+rport		= sys.argv[6]
 
 whoami		= getpass.getuser()
 lhost		= socket.gethostname()
 systemid	= whoami+"@"+lhost
 home		= os.environ["HOME"]
+configfile	= home+"/.ssh/config"
+keypath		= home+"/.ssh/"+long
 
 if not os.path.isdir(home+"/.ssh"):
 	os.mkdir(home+"/.ssh")
+	open(configfile,'a').close()
 
-if not os.path.isfile(home+"/.ssh/"+str(long)):
-	subprocess.call(["/usr/bin/ssh-keygen","-t",type,"-b",bits,"-N",passphrase,"-C",systemid,"-f",home+"/.ssh/"+str(long)])
-	identfile = home+"/.ssh/"+long
+if os.path.isfile(keypath) or short in open(configfile).read().lower():
+	print " | Given keyfile already exist or {0} already in {1}. Remove {2}(.key) manually and remove {0} from {2} ".format(short,configfile,keypath)
+	sys.exit()
+
+while len(passphrase) < 8:
+        print " | Please give passphrase (obligated & minimal 8 chars)"
+        passphrase      = getpass.getpass() #("Please give passphrase (obligated & minimal 8 chars): ")
+
+subprocess.call(["/usr/bin/ssh-keygen","-t",type,"-b",bits,"-N",passphrase,"-C",systemid,"-f",keypath])
+identfile = home+"/.ssh/"+long
+
+if os.path.isfile("/usr/local/bin/ssh-copy-id"):
+	subprocess.call(["/usr/local/bin/ssh-copy-id","-i",identfile,"-p",rport,rusername+"@"+long])
+	
+elif os.path.isfile("/usr/bin/ssh-copy-id"):
 	subprocess.call(["/usr/bin/ssh-copy-id","-i",identfile,"-p",rport,rusername+"@"+long])
 
+subprocess.call(["/usr/bin/ssh-add",keypath])
 
-fh = open(home+"/.ssh/config","a")
-fh.write("Host {0}\n\tHostName\t{1}\n\tPort\t{2}\n\tUser\t{3}\n\tIdentityFile\t{4}\n\n".format(short,long,rport,rusername,identfile))
+fh = open(configfile,"a")
+configstring = "Host {0}\nHostName {1}\nPort {2}\nUser {3}\nIdentityFile {4}\n\n".format(short,long,rport,rusername,identfile)
+fh.write(configstring)
 fh.close
 
